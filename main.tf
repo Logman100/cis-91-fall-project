@@ -60,6 +60,18 @@ resource "google_service_account" "vm_sa" {
   display_name = "VM Service Account"
 }
 
+resource "google_project_iam_member" "vm_sa_monitoring_writer" {
+  project = var.project
+  role    = "roles/monitoring.metricWriter"
+  member  = "serviceAccount:${google_service_account.vm_sa.email}"
+}
+
+resource "google_project_iam_member" "vm_sa_logs_writer" {
+  project = var.project
+  role    = "roles/logging.logWriter"
+  member  = "serviceAccount:${google_service_account.vm_sa.email}"
+}
+
 resource "google_compute_disk" "persistent_disk" {
   name = "terraform-instance-disk"
   type = "pd-balanced"
@@ -105,7 +117,10 @@ resource "google_compute_instance" "web_instance" {
       image = "debian-cloud/debian-12"
     }
   }
-
+  service_account {
+    email  = google_service_account.vm_sa.email
+    scopes = ["cloud-platform"]
+  }
   network_interface {
     network = google_compute_network.vpc_network.name
     access_config {
@@ -122,4 +137,3 @@ output "db-ip" {
 output "web-ip" {
   value = google_compute_instance.web_instance.network_interface.0.network_ip
 }
-
